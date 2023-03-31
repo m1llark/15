@@ -8,137 +8,83 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserDaoJDBCImpl implements UserDao {
-    private Connection connection = null;
-    private Statement statement = null;
-    private PreparedStatement preparedStatement = null;
+
+
+    private final Connection connection = Util.getConnection();
 
     public UserDaoJDBCImpl() {
 
     }
     public void createUsersTable() {
-        String sqlCommand = "CREATE TABLE IF NOT EXISTS users (id BIGINT PRIMARY KEY AUTO_INCREMENT NOT NULL , name VARCHAR(20) NOT NULL , lastName VARCHAR(20) NOT NULL , age TINYINT NOT NULL )";
-
-        try {
-            connection = Util.getConnection();
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            statement.executeUpdate(sqlCommand);
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS users " +
+                    "(id INT NOT NULL AUTO_INCREMENT,  firstName VARCHAR(255), lastName VARCHAR(255), age INT, PRIMARY KEY (id))");
             connection.commit();
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & statement != null) {
-                try {
-                    connection.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
+
+
     }
 
 
     public void dropUsersTable() {
-        String sqlCommand = "DROP TABLE IF EXISTS users";
-
-        try {
-            connection = Util.getConnection();
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            statement.executeUpdate(sqlCommand);
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DROP TABLE IF EXISTS users");
             connection.commit();
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & statement != null) {
-                try {
-                    connection.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
 
     public void saveUser(String name, String lastName, byte age) {
-        String sql = "INSERT INTO users (name, lastName, age) Values (?, ?, ?)";
-        try  {
-            connection = Util.getConnection();
-            connection.setAutoCommit(false);
-            preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, lastName);
-            preparedStatement.setByte(3, age);
-            preparedStatement.executeUpdate();
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("INSERT INTO users(firstName, lastName, age) " +
+                    "VALUES('" + name + "', '" + lastName + "', '" + age + "')");
             connection.commit();
-
-        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("User с именем – " + name + " добавлен в базу данных");
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & preparedStatement != null) {
-                try {
-                    connection.close();
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
-        System.out.println("User с именем – "+ name +" добавлен в базу данных" );
     }
 
     public void removeUserById(long id) {
-        try  {
-            connection = Util.getConnection();
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            statement.executeUpdate("DELETE FROM users WHERE Id =" + id);
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM users WHERE id = ?");
+            preparedStatement.setLong(1, id);
+            preparedStatement.executeUpdate();
             connection.commit();
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & statement != null) {
-                try {
-                    connection.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
-
     public List<User> getAllUsers() {
         List<User> userList = new ArrayList<>();
-        String query = "SELECT * FROM users";
-
-        try  {
-            connection = Util.getConnection();
+        try {
+            connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM users");
             while (resultSet.next()) {
                 User user = new User();
                 user.setId(resultSet.getLong(1));
@@ -148,49 +94,28 @@ public class UserDaoJDBCImpl implements UserDao {
                 userList.add(user);
             }
             connection.commit();
-        } catch (SQLException | ClassNotFoundException e) {
+
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & statement != null) {
-                try {
-                    connection.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
         return userList;
     }
 
     public void cleanUsersTable() {
-        String sqlCommand = "TRUNCATE TABLE users";
-        try {
-            connection = Util.getConnection();
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            statement.executeUpdate(sqlCommand);
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("TRUNCATE TABLE users");
             connection.commit();
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
+            e.printStackTrace();
             try {
                 connection.rollback();
-            } catch (SQLException el) {
-                el.printStackTrace();
-            }
-            e.printStackTrace();
-        } finally {
-            if (connection != null & statement != null) {
-                try {
-                    connection.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
